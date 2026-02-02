@@ -63,6 +63,7 @@
 
 - 当前使用静态 JSON 文件作为数据源
 - 在生产环境中，建议连接到真实的加密货币新闻和市场数据 API
+- **重要**: 项目配置为 Serverless Functions 模式（不是静态导出），确保 API 路由正常工作
 - Vercel 会自动处理 Serverless Functions 的部署和扩展
 
 ## 本地开发
