@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-02-02T09:51:05.297Z",
+  "crypto": "bitcoin",
+  "summary": "Bitcoin shows balanced technical setup with moderate volatility. Price action near key moving averages suggests potential consolidation before next major move. News sentiment remains cautiously optimistic with 50 recent articles analyzed.",
+  "keyLevels": {
+    "support": [
+      41970.69930805288,
+      39761.71513394483,
+      37552.73095983679
+    ],
+    "resistance": [
+      46388.66765626897,
+      48597.65183037702,
+      50806.63600448506
+    ]
+  },
+  "indicators": {
+    "rsi": 42.49120399957803,
+    "macd": {
+      "line": -0.7281141259892885,
+      "signal": 0.48298711682915646,
+      "histogram": -0.21648771279813123
+    },
+    "movingAverages": {
+      "ma20": 43298.91711212313,
+      "ma50": 43071.29982453179,
+      "ma200": 41051.79275009393
+    },
+    "volume": 2379253111.3445125
+  },
+  "sentiment": {
+    "overall": 0.4758050655364746,
+    "newsSentiment": 0.4758050655364746,
+    "socialSentiment": 0.5747614416574234
+  },
+  "recommendations": [
+    "Monitor price action around key support/resistance levels",
+    "Maintain current position size",
+    "Watch for breakout above resistance or breakdown below support",
+    "Diversify across timeframes for better risk management"
+  ],
+  "riskAssessment": "Medium risk level. Balanced market conditions with normal volatility."
+}

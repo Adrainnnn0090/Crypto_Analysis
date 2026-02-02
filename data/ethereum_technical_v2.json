@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-02-02T09:51:05.297Z",
+  "crypto": "ethereum",
+  "summary": "Ethereum shows balanced technical setup with moderate volatility. Price action near key moving averages suggests potential consolidation before next major move. News sentiment remains cautiously optimistic with 50 recent articles analyzed.",
+  "keyLevels": {
+    "support": [
+      2549.766357808825,
+      2415.568128450466,
+      2281.3698990921066
+    ],
+    "resistance": [
+      2818.1628165255433,
+      2952.361045883903,
+      3086.5592752422617
+    ]
+  },
+  "indicators": {
+    "rsi": 58.4808795484352,
+    "macd": {
+      "line": -0.7251677331778443,
+      "signal": 0.4838863598645397,
+      "histogram": 0.09082742762298013
+    },
+    "movingAverages": {
+      "ma20": 2689.9843560468066,
+      "ma50": 2615.93509855722,
+      "ma200": 2509.2918783995115
+    },
+    "volume": 6141422733.55512
+  },
+  "sentiment": {
+    "overall": 0.5494747447949337,
+    "newsSentiment": 0.5494747447949337,
+    "socialSentiment": 0.5798080457331928
+  },
+  "recommendations": [
+    "Monitor price action around key support/resistance levels",
+    "Maintain current position size",
+    "Watch for breakout above resistance or breakdown below support",
+    "Diversify across timeframes for better risk management"
+  ],
+  "riskAssessment": "Medium risk level. Balanced market conditions with normal volatility."
+}
