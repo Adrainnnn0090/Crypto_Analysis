@@ -1,0 +1,29 @@
+{
+  "articles": [
+    {
+      "title": "Ethereum 2.0 Upgrade Shows Promising Results",
+      "summary": "The latest Ethereum upgrade has significantly reduced gas fees and improved transaction throughput.",
+      "source": "coindesk",
+      "url": "https://www.coindesk.com/ethereum-upgrade-success",
+      "sentiment": 0.6,
+      "timestamp": "2026-02-02T08:00:00Z"
+    },
+    {
+      "title": "Major DeFi Protocols See Surge in Ethereum Activity",
+      "summary": "Decentralized finance applications built on Ethereum are experiencing record user growth and TVL.",
+      "source": "cointelegraph",
+      "url": "https://cointelegraph.com/defi-ethereum-surge",
+      "sentiment": 0.4,
+      "timestamp": "2026-02-02T07:30:00Z"
+    },
+    {
+      "title": "Ethereum Layer 2 Solutions Gain Traction",
+      "summary": "Rollup technologies are helping Ethereum scale while maintaining security and decentralization.",
+      "source": "cryptonews",
+      "url": "https://cryptonews.com/ethereum-layer2-growth",
+      "sentiment": 0.5,
+      "timestamp": "2026-02-02T06:45:00Z"
+    }
+  ],
+  "lastUpdated": "2026-02-02T08:54:00Z"
+}

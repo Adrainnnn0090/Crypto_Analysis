@@ -1,0 +1,7 @@
+Starting scheduled scrape and analysis...
+Backend server running on port 3001
+Error fetching price data for bitcoin: Request failed with status code 401
+No historical data for BTC
+Error fetching price data for ethereum: Request failed with status code 401
+No historical data for ETH
+Scraped and analyzed: 0 BTC articles, 0 ETH articles

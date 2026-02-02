@@ -1,0 +1,21 @@
+{
+  "articles": [
+    {
+      "title": "Bitcoin Surges Past $45,000 on Institutional Adoption",
+      "source": "coindesk",
+      "url": "https://www.coindesk.com/markets/2026/02/02/bitcoin-surges/",
+      "sentiment": 0.8,
+      "summary": "Bitcoin price rallies as major financial institutions announce new crypto custody services.",
+      "timestamp": "2026-02-02T08:00:00Z"
+    },
+    {
+      "title": "Bitcoin Mining Difficulty Reaches All-Time High",
+      "source": "cointelegraph",
+      "url": "https://cointelegraph.com/news/bitcoin-mining-difficulty-ath",
+      "sentiment": 0.3,
+      "summary": "Network security strengthens as mining difficulty adjusts upward following recent price increases.",
+      "timestamp": "2026-02-02T07:30:00Z"
+    }
+  ],
+  "lastUpdated": "2026-02-02T08:53:00Z"
+}

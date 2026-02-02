@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多任务进度追踪仪表盘</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            min-width: 150px;
+            margin: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .tasks-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .task-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .task-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .task-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status-in-progress {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .status-completed {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-failed {
+            background: #f44336;
+            color: white;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        
+        .task-details {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        
+        .last-updated {
+            text-align: center;
+            margin-top: 20px;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🚀 多任务进度追踪仪表盘</h1>
+            <p>实时监控所有任务的完成情况</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>总任务数</h3>
+                <div class="value" id="total-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>已完成</h3>
+                <div class="value" id="completed-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>进行中</h3>
+                <div class="value" id="in-progress-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>完成率</h3>
+                <div class="value" id="completion-rate">0%</div>
+            </div>
+        </div>
+        
+        <div class="tasks-container" id="tasks-container">
+            <!-- 任务卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <div class="last-updated" id="last-updated">
+            最后更新: 正在加载...
+        </div>
+    </div>
+
+    <script>
+        // 模拟任务数据 - 实际使用时会从API获取
+        let tasks = [
+            {
+                id: 1,
+                title: "创建仪表盘界面",
+                status: "completed",
+                progress: 100,
+                description: "设计并实现任务追踪仪表盘的UI界面",
+                startTime: "2024-01-15T10:00:00",
+                estimatedTime: "30分钟"
+            },
+            {
+                id: 2,
+                title: "集成实时数据",
+                status: "in-progress",
+                progress: 65,
+                description: "连接后端API实现实时数据更新",
+                startTime: "2024-01-15T10:30:00",
+                estimatedTime: "45分钟"
+            },
+            {
+                id: 3,
+                title: "添加交互功能",
+                status: "pending",
+                progress: 0,
+                description: "实现任务状态切换和进度调整功能",
+                startTime: null,
+                estimatedTime: "60分钟"
+            },
+            {
+                id: 4,
+                title: "优化性能",
+                status: "pending",
+                progress: 0,
+                description: "确保仪表盘在大量任务下的流畅运行",
+                startTime: null,
+                estimatedTime: "30分钟"
+            }
+        ];
+        
+        function updateDashboard() {
+            const container = document.getElementById('tasks-container');
+            container.innerHTML = '';
+            
+            let total = tasks.length;
+            let completed = 0;
+            let inProgress = 0;
+            
+            tasks.forEach(task => {
+                if (task.status === 'completed') completed++;
+                if (task.status === 'in-progress') inProgress++;
+                
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
+                
+                const statusClass = `status-${task.status}`;
+                const progressBarColor = task.status === 'completed' ? '#4caf50' : 
+                                       task.status === 'in-progress' ? '#2196f3' : '#ff9800';
+                
+                taskCard.innerHTML = `
+                    <div class="task-header">
+                        <h3 class="task-title">${task.title}</h3>
+                        <span class="task-status ${statusClass}">
+                            ${getStatusText(task.status)}
+                        </span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${task.progress}%; background: ${progressBarColor};"></div>
+                    </div>
+                    <div class="task-details">
+                        <div>${task.description}</div>
+                        <div>预计耗时: ${task.estimatedTime}</div>
+                        ${task.startTime ? `<div>开始时间: ${new Date(task.startTime).toLocaleString()}</div>` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(taskCard);
+            });
+            
+            // 更新统计信息
+            document.getElementById('total-tasks').textContent = total;
+            document.getElementById('completed-tasks').textContent = completed;
+            document.getElementById('in-progress-tasks').textContent = inProgress;
+            document.getElementById('completion-rate').textContent = total > 0 ? Math.round((completed / total) * 100) + '%' : '0%';
+            
+            // 更新最后更新时间
+            document.getElementById('last-updated').textContent = `最后更新: ${new Date().toLocaleString()}`;
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case 'completed': return '已完成';
+                case 'in-progress': return '进行中';
+                case 'pending': return '待开始';
+                case 'failed': return '失败';
+                default: return status;
+            }
+        }
+        
+        // 模拟实时更新 - 每5秒更新一次
+        setInterval(() => {
+            // 这里可以添加实际的数据获取逻辑
+            // 例如：fetch('/api/tasks').then(response => response.json()).then(data => { tasks = data; updateDashboard(); });
+            
+            // 为了演示，我们模拟一些进度变化
+            tasks.forEach(task => {
+                if (task.status === 'in-progress' && task.progress < 100) {
+                    task.progress = Math.min(task.progress + Math.random() * 5, 100);
+                    if (task.progress >= 100) {
+                        task.status = 'completed';
+                        task.progress = 100;
+                    }
+                }
+            });
+            
+            updateDashboard();
+        }, 5000);
+        
+        // 初始加载
+        updateDashboard();
+    </script>
+</body>
+</html>
