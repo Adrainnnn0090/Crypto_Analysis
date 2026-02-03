@@ -34,6 +34,15 @@ class DataAggregator {
           newsData = fallbackData;
         }
       }
+
+      if (!newsData || !Array.isArray(newsData.articles)) {
+        newsData = {
+          articles: [],
+          lastUpdated: new Date().toISOString(),
+          sourceCount: 0,
+          sentimentScore: 0
+        };
+      }
       
       // 确保至少有一些新闻数据
       if (newsData.articles.length === 0 && this.allowSampleData) {
@@ -75,6 +84,13 @@ class DataAggregator {
       const indicatorData = await this.technicalAnalyzer.analyzeCoin(crypto);
       if (!indicatorData) {
         console.warn('Technical indicator data unavailable');
+      } else if (!priceData && indicatorData.currentPrice) {
+        priceData = {
+          current_price: indicatorData.currentPrice,
+          price_change_percentage_24h: indicatorData.priceChange24h,
+          total_volume: indicatorData.volume24h,
+          last_updated: indicatorData.timestamp
+        };
       }
 
       // 5. 合并新闻和社交媒体数据

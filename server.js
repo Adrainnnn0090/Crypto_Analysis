@@ -1,10 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const axios = require('axios');
-const cheerio = require('cheerio');
-const Sentiment = require('sentiment');
-const { RSI, MACD, SMA, EMA } = require('technicalindicators');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,27 +21,28 @@ app.get('/api/health', (req, res) => {
 // News scraping endpoints
 app.get('/api/news/:coin', async (req, res) => {
   const { coin } = req.params;
-  const sources = [
-    { name: 'CoinDesk', url: `https://www.coindesk.com/search/?q=${coin}` },
-    { name: 'CoinTelegraph', url: `https://cointelegraph.com/search?query=${coin}` },
-    { name: 'CryptoNews', url: `https://cryptonews.com/search/?q=${coin}` }
-  ];
+  if (!['bitcoin', 'ethereum'].includes(coin)) {
+    return res.status(400).json({ error: 'Invalid coin. Use "bitcoin" or "ethereum"' });
+  }
 
   try {
-    const articles = [];
-    // Note: In production, you'd need proper scraping logic
-    // For now, returning mock data structure
-    for (let i = 0; i < 3; i++) {
-      articles.push({
-        title: `${coin.toUpperCase()} price analysis - Article ${i + 1}`,
-        summary: `Latest ${coin} market analysis and news update`,
-        source: sources[i % sources.length].name,
-        url: sources[i % sources.length].url,
-        publishedAt: new Date(Date.now() - i * 3600000).toISOString(),
-        sentiment: Math.random() > 0.5 ? 'positive' : 'negative'
-      });
+    const v2Path = path.join(__dirname, 'data', `${coin}_news_v2.json`);
+    const dataPath = fs.existsSync(v2Path)
+      ? v2Path
+      : path.join(__dirname, 'data', `${coin}_news.json`);
+
+    if (!fs.existsSync(dataPath)) {
+      return res.status(404).json({ articles: [], message: 'No news data available yet' });
     }
-    res.json({ articles, lastUpdated: new Date().toISOString() });
+
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    res.json({
+      success: true,
+      articles: data.articles || [],
+      lastUpdated: data.lastUpdated || new Date().toISOString(),
+      sourceCount: data.sourceCount || 0,
+      sentimentScore: data.sentimentScore || 0
+    });
   } catch (error) {
     console.error('News scraping error:', error);
     res.status(500).json({ error: 'Failed to fetch news' });
@@ -56,27 +54,20 @@ app.get('/api/technical/:coin', async (req, res) => {
   const { coin } = req.params;
   
   try {
-    // Mock price data for demonstration
-    const mockPrices = [];
-    for (let i = 0; i < 100; i++) {
-      mockPrices.push(Math.random() * 1000 + 20000); // BTC-like prices
+    const v2Path = path.join(__dirname, 'data', `${coin}_technical_v2.json`);
+    const dataPath = fs.existsSync(v2Path)
+      ? v2Path
+      : path.join(__dirname, 'data', `${coin}_technical.json`);
+
+    if (!fs.existsSync(dataPath)) {
+      return res.status(404).json({ error: 'No technical analysis data available yet' });
     }
 
-    // Calculate technical indicators
-    const rsi = RSI.calculate({ values: mockPrices.slice(-14), period: 14 });
-    const macd = MACD.calculate({ values: mockPrices, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 });
-    const sma20 = SMA.calculate({ period: 20, values: mockPrices });
-    const ema20 = EMA.calculate({ period: 20, values: mockPrices });
-
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     res.json({
-      coin,
-      currentPrice: mockPrices[mockPrices.length - 1],
-      rsi: rsi[rsi.length - 1] || 50,
-      macd: macd[macd.length - 1] || { MACD: 0, signal: 0, histogram: 0 },
-      sma20: sma20[sma20.length - 1] || mockPrices[mockPrices.length - 1],
-      ema20: ema20[ema20.length - 1] || mockPrices[mockPrices.length - 1],
-      historicalData: mockPrices.slice(-24), // Last 24 hours
-      lastUpdated: new Date().toISOString()
+      success: true,
+      data,
+      lastUpdated: data.timestamp || new Date().toISOString()
     });
   } catch (error) {
     console.error('Technical analysis error:', error);

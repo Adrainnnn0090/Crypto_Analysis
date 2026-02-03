@@ -61,8 +61,9 @@
 
 ## 注意事项
 
-- 当前使用静态 JSON 文件作为数据源
-- 在生产环境中，建议连接到真实的加密货币新闻和市场数据 API
+- 已支持真实新闻 RSS + 可选 NewsAPI 数据源
+- 技术指标默认走 CryptoCompare（无 Key 也能跑，但频率有限）
+- 数据会落地到 `data/*.json`，API 直接读取
 - **重要**: 项目配置为 Serverless Functions 模式（不是静态导出），确保 API 路由正常工作
 - Vercel 会自动处理 Serverless Functions 的部署和扩展
 
@@ -73,3 +74,29 @@ npm run dev
 ```
 
 访问 `http://localhost:3000` 查看开发版本。
+
+## 真实新闻与自动更新
+
+一次抓取（生成最新 JSON 数据）：
+
+```bash
+npm run scrape
+```
+
+实时抓取（默认每 10 分钟）：
+
+```bash
+npm run scrape:realtime
+```
+
+### 常用环境变量
+
+- `NEWS_API_KEY`：NewsAPI Key（可选）
+- `NEWS_RSS_FEEDS`：自定义 RSS 列表，格式 `name|url,name|url`
+- `NEWS_MAX_ARTICLES`：单次抓取最大文章数（默认 60）
+- `NEWS_TIMEOUT_MS`：新闻请求超时（默认 12000）
+- `SCRAPE_CRON`：定时任务 cron 表达式（默认 `*/10 * * * *`）
+- `SCRAPE_COINS`：抓取币种（默认 `bitcoin,ethereum`）
+- `CRYPTOCOMPARE_API_KEY`：CryptoCompare Key（可选）
+- `SOCIAL_SIMULATED`：是否启用社媒模拟数据（默认 `false`）
+- `ALLOW_SAMPLE_DATA`：无数据时是否允许样本填充（默认 `false`）

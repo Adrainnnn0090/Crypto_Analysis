@@ -5,6 +5,7 @@ echo "🚀 Starting Crypto Analysis Dashboard..."
 # Kill any existing processes on port 3000
 echo "🧹 Cleaning up existing processes..."
 pkill -f "node.*simple-server.js" 2>/dev/null
+pkill -f "node.*realtime_runner.js" 2>/dev/null
 
 # Create data directory if it doesn't exist
 mkdir -p data
@@ -29,6 +30,10 @@ fi
 # Start the server
 echo "⚙️  Starting server on http://localhost:3000"
 node simple-server.js &
+
+# Start realtime scraper (runs in background)
+echo "📰 Starting realtime news scraper..."
+node scrapers/realtime_runner.js &
 
 # Wait a moment and check if it's running
 sleep 2

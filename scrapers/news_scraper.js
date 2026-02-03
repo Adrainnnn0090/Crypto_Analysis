@@ -218,7 +218,9 @@ class NewsScraper {
           summary: summary || this.cleanText(rawContent).slice(0, 280),
           timestamp: this.extractItemDate(item),
           content: summary,
-          author: item.find('author name').first().text().trim() || item.find('creator').first().text().trim(),
+          author: item.find('author name').first().text().trim()
+            || item.find('dc\\:creator').first().text().trim()
+            || item.find('creator').first().text().trim(),
           category: this.categorizeArticle(title, summary)
         };
       }).filter(Boolean);
