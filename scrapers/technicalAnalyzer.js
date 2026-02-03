@@ -109,20 +109,30 @@ class TechnicalAnalyzer {
       const rsiValues = this.calculateRSI(closes);
       const macdValues = this.calculateMACD(closes);
       const sma20 = this.calculateSMA(closes, 20);
+      const sma50 = this.calculateSMA(closes, 50);
+      const sma200 = this.calculateSMA(closes, 200);
       const ema20 = this.calculateEMA(closes, 20);
 
       // Get the latest values
       const latestRsi = rsiValues[rsiValues.length - 1];
       const latestMacd = macdValues[macdValues.length - 1];
       const latestSma = sma20[sma20.length - 1];
+      const latestSma50 = sma50[sma50.length - 1];
+      const latestSma200 = sma200[sma200.length - 1];
       const latestEma = ema20[ema20.length - 1];
 
       // Current price
       const currentPrice = closes[closes.length - 1];
+      const price24hAgo = closes.length > 24 ? closes[closes.length - 25] : closes[0];
+      const priceChange24h = price24hAgo ? ((currentPrice - price24hAgo) / price24hAgo) * 100 : 0;
+      const volume24h = volumes.length > 24
+        ? volumes.slice(-24).reduce((sum, value) => sum + value, 0)
+        : volumes.reduce((sum, value) => sum + value, 0);
 
       return {
         coin,
         currentPrice,
+        priceChange24h,
         rsi: latestRsi,
         macd: latestMacd ? {
           macd: latestMacd.MACD,
@@ -130,7 +140,10 @@ class TechnicalAnalyzer {
           histogram: latestMacd.histogram
         } : null,
         sma20: latestSma,
+        sma50: latestSma50,
+        sma200: latestSma200,
         ema20: latestEma,
+        volume24h,
         historicalData: historicalData.slice(-50), // Last 50 hours
         timestamp: new Date().toISOString()
       };

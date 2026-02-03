@@ -10,8 +10,11 @@ export default function handler(req, res) {
   }
 
   try {
-    // Read the data file
-    const dataPath = path.join(process.cwd(), 'data', `${coin}_technical.json`);
+    // Read the data file (prefer v2 if available)
+    const v2Path = path.join(process.cwd(), 'data', `${coin}_technical_v2.json`);
+    const dataPath = fs.existsSync(v2Path)
+      ? v2Path
+      : path.join(process.cwd(), 'data', `${coin}_technical.json`);
     
     if (!fs.existsSync(dataPath)) {
       return res.status(404).json({ 

@@ -2,6 +2,7 @@ const axios = require('axios');
 
 class SocialScraper {
   constructor() {
+    this.simulated = process.env.SOCIAL_SIMULATED === 'true';
     // 这里可以集成 Twitter/X API 或其他社交媒体 API
     // 由于 API 密钥限制，我们先模拟一些数据
     this.influencers = {
@@ -24,6 +25,17 @@ class SocialScraper {
 
   async fetchSocialData(crypto) {
     try {
+      if (!this.simulated) {
+        return {
+          timestamp: new Date().toISOString(),
+          crypto: crypto,
+          posts: [],
+          sentiment: 0,
+          trendingTopics: [],
+          note: 'Social data disabled. Set SOCIAL_SIMULATED=true or integrate real APIs.'
+        };
+      }
+
       // 模拟从社交媒体获取的数据
       // 在实际应用中，这里会调用 Twitter API、Reddit API 等
       const socialData = {

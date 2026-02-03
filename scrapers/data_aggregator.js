@@ -1,6 +1,8 @@
 const NewsScraper = require('./news_scraper');
 const SocialScraper = require('./social_scraper');
 const CryptoAnalyzer = require('./crypto_analyzer');
+const TechnicalAnalyzer = require('./technicalAnalyzer');
+const PriceService = require('./price_service');
 const fs = require('fs');
 const path = require('path');
 
@@ -9,6 +11,9 @@ class DataAggregator {
     this.newsScraper = new NewsScraper();
     this.socialScraper = new SocialScraper();
     this.analyzer = new CryptoAnalyzer();
+    this.technicalAnalyzer = new TechnicalAnalyzer(process.env.CRYPTOCOMPARE_API_KEY || null);
+    this.priceService = new PriceService();
+    this.allowSampleData = process.env.ALLOW_SAMPLE_DATA === 'true';
     this.dataDir = path.join(__dirname, '../data');
   }
 
@@ -16,23 +21,28 @@ class DataAggregator {
     console.log(`\n=== Starting data aggregation and analysis for ${crypto} ===`);
     
     try {
-      // 1. 抓取新闻数据（至少50篇）
+      // 1. 抓取新闻数据
       console.log('Fetching news data...');
-      const newsData = await this.newsScraper.fetchNews(crypto, 50);
+      let newsData = await this.newsScraper.fetchNews(crypto, this.newsScraper.maxArticles);
       
       if (!newsData || !newsData.articles || newsData.articles.length === 0) {
         console.warn('No news data fetched, using fallback data');
         // 使用现有数据作为后备
-        const fallbackPath = path.join(this.dataDir, `${crypto}_news.json`);
-        if (fs.existsSync(fallbackPath)) {
-          const fallbackData = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
-          newsData.articles = fallbackData.articles || [];
+        const fallbackData = this.readJsonIfExists(path.join(this.dataDir, `${crypto}_news_v2.json`))
+          || this.readJsonIfExists(path.join(this.dataDir, `${crypto}_news.json`));
+        if (fallbackData) {
+          newsData = fallbackData;
         }
       }
       
       // 确保至少有一些新闻数据
-      if (newsData.articles.length === 0) {
+      if (newsData.articles.length === 0 && this.allowSampleData) {
         newsData.articles = this.generateSampleNews(crypto, 20);
+      }
+
+      newsData.sourceCount = newsData.sourceCount || new Set(newsData.articles.map(article => article.source)).size;
+      if (typeof newsData.sentimentScore !== 'number') {
+        newsData.sentimentScore = this.calculateSentimentScore(newsData.articles);
       }
       
       console.log(`Fetched ${newsData.articles.length} news articles`);
@@ -42,23 +52,45 @@ class DataAggregator {
       const socialData = await this.socialScraper.fetchSocialData(crypto);
       console.log(`Fetched ${socialData.posts.length} social media posts`);
 
-      // 3. 获取价格数据（模拟从CoinGecko获取）
+      // 3. 获取价格数据
       console.log('Fetching price data...');
-      const priceData = this.getPriceData(crypto);
-      console.log(`Current price: $${priceData.current_price}`);
+      let priceData = await this.priceService.fetchPrice(crypto);
+      if (!priceData) {
+        const cachedPrice = this.readJsonIfExists(path.join(this.dataDir, `${crypto}_price.json`));
+        if (cachedPrice) {
+          priceData = cachedPrice;
+        } else if (this.allowSampleData) {
+          priceData = this.getSamplePriceData(crypto);
+        }
+      }
 
-      // 4. 合并新闻和社交媒体数据
+      if (priceData?.current_price) {
+        console.log(`Current price: $${priceData.current_price}`);
+      } else {
+        console.warn('Price data unavailable');
+      }
+
+      // 4. 获取技术指标数据
+      console.log('Fetching technical indicators...');
+      const indicatorData = await this.technicalAnalyzer.analyzeCoin(crypto);
+      if (!indicatorData) {
+        console.warn('Technical indicator data unavailable');
+      }
+
+      // 5. 合并新闻和社交媒体数据
       const combinedNewsData = this.combineNewsAndSocial(newsData, socialData, crypto);
       
-      // 5. 生成深度技术分析
+      // 6. 生成技术分析
       console.log('Generating technical analysis...');
       const technicalAnalysis = this.analyzer.generateTechnicalAnalysis(
         crypto, 
         priceData, 
-        combinedNewsData
+        combinedNewsData,
+        indicatorData,
+        socialData
       );
 
-      // 6. 保存所有数据
+      // 7. 保存所有数据
       this.saveData(crypto, combinedNewsData, technicalAnalysis, priceData);
       
       console.log(`=== Successfully completed analysis for ${crypto} ===\n`);
@@ -78,35 +110,28 @@ class DataAggregator {
   combineNewsAndSocial(newsData, socialData, crypto) {
     const combined = { ...newsData };
     
-    // 将社交媒体帖子转换为新闻格式并合并
-    const socialArticles = socialData.posts.map(post => ({
+    // 将社交媒体帖子转换为新闻格式并合并（可选）
+    const socialArticles = (socialData?.posts || []).map(post => ({
       title: post.content.substring(0, 100) + '...',
       source: `social-${post.platform}`,
       url: post.url || `https://twitter.com/user/status/${Date.now()}`,
-      sentiment: post.sentiment || Math.random(),
+      sentiment: post.sentiment || 0.5,
       summary: post.content,
       timestamp: post.timestamp || new Date().toISOString(),
       author: post.author,
       platform: post.platform
     }));
     
-    // 合并数组，确保总数量至少50篇
-    combined.articles = [...newsData.articles, ...socialArticles];
-    
-    // 如果仍然不足50篇，生成一些样本数据
-    while (combined.articles.length < 50) {
-      combined.articles.push(this.generateSampleArticle(crypto));
-    }
-    
-    // 截断到最多100篇以控制数据大小
-    combined.articles = combined.articles.slice(0, 100);
+    combined.articles = [...(newsData.articles || []), ...socialArticles];
+    combined.lastUpdated = new Date().toISOString();
+    combined.sourceCount = new Set(combined.articles.map(article => article.source)).size;
+    combined.sentimentScore = this.calculateSentimentScore(combined.articles);
     
     return combined;
   }
 
-  getPriceData(crypto) {
-    // 模拟从CoinGecko获取实时价格数据
-    // 在实际应用中，这里会调用真实的API
+  getSamplePriceData(crypto) {
+    // 仅用于允许样本数据的场景
     const basePrice = crypto === 'bitcoin' ? 45000 : 2500;
     const randomFactor = 1 + (Math.random() - 0.5) * 0.1; // ±5% 随机波动
     const currentPrice = basePrice * randomFactor;
@@ -155,17 +180,39 @@ class DataAggregator {
     };
   }
 
+  calculateSentimentScore(articles) {
+    if (!articles || articles.length === 0) return 0;
+    const total = articles.reduce((sum, article) => sum + (article.sentiment ?? 0.5), 0);
+    return total / articles.length;
+  }
+
+  readJsonIfExists(filePath) {
+    if (!fs.existsSync(filePath)) return null;
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (error) {
+      console.warn(`Failed to read cache file ${filePath}:`, error.message);
+      return null;
+    }
+  }
+
   saveData(crypto, newsData, technicalAnalysis, priceData) {
     // 保存新闻数据
     const newsPath = path.join(this.dataDir, `${crypto}_news_v2.json`);
     fs.writeFileSync(newsPath, JSON.stringify(newsData, null, 2));
+    const legacyNewsPath = path.join(this.dataDir, `${crypto}_news.json`);
+    fs.writeFileSync(legacyNewsPath, JSON.stringify(newsData, null, 2));
     
     // 保存技术分析
     this.analyzer.saveAnalysis(crypto, technicalAnalysis);
+    const legacyAnalysisPath = path.join(this.dataDir, `${crypto}_technical.json`);
+    fs.writeFileSync(legacyAnalysisPath, JSON.stringify(technicalAnalysis, null, 2));
     
     // 保存价格数据
-    const pricePath = path.join(this.dataDir, `${crypto}_price.json`);
-    fs.writeFileSync(pricePath, JSON.stringify(priceData, null, 2));
+    if (priceData) {
+      const pricePath = path.join(this.dataDir, `${crypto}_price.json`);
+      fs.writeFileSync(pricePath, JSON.stringify(priceData, null, 2));
+    }
     
     console.log(`Saved all data for ${crypto}`);
   }

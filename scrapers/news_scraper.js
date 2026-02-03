@@ -2,170 +2,320 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs').promises;
 const path = require('path');
+const SentimentAnalyzer = require('./sentimentAnalyzer');
 
-// 配置多个新闻源
-const NEWS_SOURCES = {
-  bitcoin: [
-    'https://newsapi.org/v2/everything?q=bitcoin&sortBy=publishedAt&language=en',
-    'https://newsapi.org/v2/everything?q=bitcoin+price&sortBy=publishedAt&language=en',
-    'https://newsapi.org/v2/everything?q=bitcoin+market&sortBy=publishedAt&language=en',
-    'https://cryptonews-api.com/api/v1?tickers=BTC&items=50&token=YOUR_TOKEN', // 需要替换为实际API
-  ],
-  ethereum: [
-    'https://newsapi.org/v2/everything?q=ethereum&sortBy=publishedAt&language=en',
-    'https://newsapi.org/v2/everything?q=ethereum+price&sortBy=publishedAt&language=en',
-    'https://newsapi.org/v2/everything?q=ethereum+market&sortBy=publishedAt&language=en',
-  ]
-};
+const DEFAULT_RSS_FEEDS = [
+  { name: 'coindesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml' },
+  { name: 'cointelegraph', url: 'https://cointelegraph.com/rss' },
+  { name: 'decrypt', url: 'https://decrypt.co/feed' },
+  { name: 'cryptoslate', url: 'https://cryptoslate.com/feed/' },
+  { name: 'theblock', url: 'https://www.theblock.co/rss.xml' },
+  { name: 'newsbtc', url: 'https://www.newsbtc.com/feed/' }
+];
 
-// 社交媒体数据源配置
-const SOCIAL_SOURCES = {
-  bitcoin: [
-    // Twitter/X API endpoints for key influencers
-    // 这里需要实际的Twitter API集成
-  ],
-  ethereum: [
-    // Ethereum相关推特账号
-  ]
+const COIN_KEYWORDS = {
+  bitcoin: ['bitcoin', 'btc', 'satoshi', 'lightning', 'hashrate', 'btc/'],
+  ethereum: ['ethereum', 'eth', 'ether', 'vitalik', 'erc', 'layer-2', 'l2']
 };
 
 class NewsScraper {
   constructor() {
     this.newsApiKey = process.env.NEWS_API_KEY || '';
-    this.maxArticles = 50;
+    this.maxArticles = parseInt(process.env.NEWS_MAX_ARTICLES || '60', 10);
+    this.timeoutMs = parseInt(process.env.NEWS_TIMEOUT_MS || '12000', 10);
+    this.sentimentAnalyzer = new SentimentAnalyzer();
+    this.rssFeeds = this.loadRssFeeds();
   }
 
-  async fetchNewsAPI(coin, query) {
+  loadRssFeeds() {
+    const envFeeds = process.env.NEWS_RSS_FEEDS;
+    if (!envFeeds) return DEFAULT_RSS_FEEDS;
+
+    return envFeeds
+      .split(',')
+      .map(entry => entry.trim())
+      .filter(Boolean)
+      .map(entry => {
+        const parts = entry.split('|').map(part => part.trim()).filter(Boolean);
+        if (parts.length === 1) {
+          const url = parts[0];
+          const name = this.safeHostName(url) || 'custom';
+          return { name, url };
+        }
+        return { name: parts[0], url: parts[1] };
+      });
+  }
+
+  safeHostName(url) {
     try {
-      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&language=en&pageSize=${this.maxArticles}&apiKey=${this.newsApiKey}`;
-      const response = await axios.get(url);
-      
-      if (response.data.status === 'ok') {
-        return response.data.articles.map(article => ({
-          title: article.title,
-          source: article.source.name.toLowerCase().replace(/\s+/g, '-'),
-          url: article.url,
-          sentiment: this.calculateSentiment(article.description || article.title),
-          summary: article.description || this.generateSummary(article.content || article.title),
-          timestamp: article.publishedAt,
-          content: article.content,
-          author: article.author,
-          category: this.categorizeArticle(article.title, article.description)
-        }));
-      }
+      const parsed = new URL(url);
+      return parsed.hostname.replace(/^www\./, '');
     } catch (error) {
-      console.error(`Error fetching NewsAPI for ${coin}:`, error.message);
-      return [];
+      return null;
     }
   }
 
-  async fetchCryptoNewsAPI(coin) {
-    // 如果有专门的加密货币新闻API，可以在这里实现
-    return [];
+  normalizeUrl(rawUrl) {
+    if (!rawUrl) return '';
+    try {
+      const parsed = new URL(rawUrl);
+      const paramsToDrop = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref', 'ref_src'];
+      paramsToDrop.forEach(param => parsed.searchParams.delete(param));
+      return parsed.toString();
+    } catch (error) {
+      return rawUrl.trim();
+    }
   }
 
-  calculateSentiment(text) {
-    // 简单的情感分析 - 实际项目中应该使用更复杂的NLP模型
-    const positiveWords = ['surge', 'rally', 'bullish', 'growth', 'adoption', 'success', 'positive', 'strong', 'up', 'gain'];
-    const negativeWords = ['crash', 'drop', 'bearish', 'decline', 'fall', 'loss', 'negative', 'weak', 'down', 'risk'];
-    
-    let score = 0;
-    const words = text.toLowerCase().split(/\s+/);
-    
-    words.forEach(word => {
-      if (positiveWords.includes(word)) score += 1;
-      if (negativeWords.includes(word)) score -= 1;
-    });
-    
-    // 归一化到 -1 到 1 范围
-    return Math.max(-1, Math.min(1, score / words.length * 10));
+  cleanText(rawText) {
+    if (!rawText) return '';
+    const $ = cheerio.load(rawText);
+    return $.text().replace(/\s+/g, ' ').trim();
   }
 
-  generateSummary(content) {
-    // 简单摘要生成
-    if (!content) return '';
-    const sentences = content.split(/[.!?]/).filter(s => s.trim().length > 0);
-    return sentences.slice(0, 2).join('. ') + '.';
+  normalizeSentiment(comparative) {
+    if (typeof comparative !== 'number' || Number.isNaN(comparative)) return 0.5;
+    const normalized = (comparative + 1) / 2;
+    return Math.max(0, Math.min(1, normalized));
+  }
+
+  matchesCoin(text, coin) {
+    const keywords = COIN_KEYWORDS[coin] || [];
+    const lower = (text || '').toLowerCase();
+    return keywords.some(keyword => lower.includes(keyword));
   }
 
   categorizeArticle(title, description) {
-    const text = (title + ' ' + (description || '')).toLowerCase();
-    if (text.includes('regulation') || text.includes('law') || text.includes('government')) {
+    const text = `${title || ''} ${description || ''}`.toLowerCase();
+    if (text.includes('regulation') || text.includes('law') || text.includes('government') || text.includes('sec')) {
       return 'regulation';
-    } else if (text.includes('price') || text.includes('market') || text.includes('trade')) {
+    }
+    if (text.includes('price') || text.includes('market') || text.includes('trade') || text.includes('etf')) {
       return 'market';
-    } else if (text.includes('technology') || text.includes('update') || text.includes('development')) {
+    }
+    if (text.includes('technology') || text.includes('update') || text.includes('development') || text.includes('upgrade')) {
       return 'technology';
-    } else if (text.includes('adoption') || text.includes('institutional') || text.includes('company')) {
+    }
+    if (text.includes('adoption') || text.includes('institutional') || text.includes('company') || text.includes('bank')) {
       return 'adoption';
     }
     return 'general';
   }
 
-  async scrapeAllNews(coin) {
-    console.log(`Scraping news for ${coin}...`);
-    
-    // 使用多个查询来获取更多数据
-    const queries = [coin, `${coin} price`, `${coin} market`, `${coin} technology`, `${coin} adoption`];
-    let allArticles = [];
-    
-    for (const query of queries) {
-      const articles = await this.fetchNewsAPI(coin, query);
-      allArticles = [...allArticles, ...articles];
-      
-      // 避免API速率限制
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  async fetchNewsAPI(coin, query) {
+    if (!this.newsApiKey) return [];
+
+    try {
+      const url = 'https://newsapi.org/v2/everything';
+      const response = await axios.get(url, {
+        params: {
+          q: query,
+          sortBy: 'publishedAt',
+          language: 'en',
+          pageSize: this.maxArticles,
+          apiKey: this.newsApiKey
+        },
+        timeout: this.timeoutMs
+      });
+
+      if (response.data.status === 'ok') {
+        return response.data.articles.map(article => {
+          const sentiment = this.sentimentAnalyzer.analyze(`${article.title || ''} ${article.description || ''}`);
+          return {
+            title: article.title,
+            source: (article.source?.name || 'newsapi').toLowerCase().replace(/\s+/g, '-'),
+            url: this.normalizeUrl(article.url),
+            sentiment: this.normalizeSentiment(sentiment.comparative),
+            summary: article.description || '',
+            timestamp: article.publishedAt,
+            content: article.content || article.description || '',
+            author: article.author,
+            category: this.categorizeArticle(article.title, article.description)
+          };
+        });
+      }
+    } catch (error) {
+      console.error(`Error fetching NewsAPI for ${coin}:`, error.message);
     }
-    
-    // 去重（基于URL）
-    const uniqueArticles = [];
-    const seenUrls = new Set();
-    
-    for (const article of allArticles) {
-      if (!seenUrls.has(article.url)) {
-        seenUrls.add(article.url);
-        uniqueArticles.push(article);
+
+    return [];
+  }
+
+  extractItemLink(item) {
+    const linkNode = item.find('link').first();
+    const href = linkNode.attr('href');
+    if (href) return href.trim();
+    const linkText = linkNode.text().trim();
+    if (linkText) return linkText;
+
+    const guidText = item.find('guid').first().text().trim();
+    return guidText || '';
+  }
+
+  extractItemDate(item) {
+    const candidates = [
+      item.find('pubDate').first().text(),
+      item.find('updated').first().text(),
+      item.find('dc\\:date').first().text(),
+      item.find('published').first().text()
+    ].map(value => (value || '').trim()).filter(Boolean);
+
+    if (candidates.length > 0) {
+      const parsed = new Date(candidates[0]);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString();
       }
     }
-    
-    // 按时间排序（最新在前）
-    uniqueArticles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-    // 限制数量
-    return uniqueArticles.slice(0, this.maxArticles);
+
+    return new Date().toISOString();
   }
 
-  async saveNewsData(coin, articles) {
-    const dataPath = path.join(process.cwd(), 'data', `${coin}_news.json`);
-    const data = {
-      articles: articles,
-      lastUpdated: new Date().toISOString(),
-      totalArticles: articles.length
-    };
-    
-    await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
-    console.log(`Saved ${articles.length} articles for ${coin}`);
+  extractItemContent(item) {
+    const encoded = item.find('content\\:encoded').first().text().trim();
+    if (encoded) return encoded;
+
+    const description = item.find('description').first().text().trim();
+    if (description) return description;
+
+    const summary = item.find('summary').first().text().trim();
+    if (summary) return summary;
+
+    const content = item.find('content').first().text().trim();
+    return content;
   }
 
-  async run() {
+  async fetchRssFeed(feed, coin) {
     try {
-      const bitcoinNews = await this.scrapeAllNews('bitcoin');
-      await this.saveNewsData('bitcoin', bitcoinNews);
-      
-      const ethereumNews = await this.scrapeAllNews('ethereum');
-      await this.saveNewsData('ethereum', ethereumNews);
-      
-      console.log('News scraping completed successfully!');
+      const response = await axios.get(feed.url, {
+        timeout: this.timeoutMs,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        }
+      });
+
+      const $ = cheerio.load(response.data, { xmlMode: true });
+      const rawItems = $('item').length ? $('item').toArray() : $('entry').toArray();
+
+      const articles = rawItems.map(rawItem => {
+        const item = $(rawItem);
+        const title = item.find('title').first().text().trim();
+        const url = this.normalizeUrl(this.extractItemLink(item));
+        const rawContent = this.extractItemContent(item);
+        const summary = this.cleanText(rawContent).slice(0, 280);
+        const textForMatch = `${title} ${summary}`;
+        const matches = this.matchesCoin(textForMatch, coin);
+
+        if (!title || !url || !matches) {
+          return null;
+        }
+
+        const sentiment = this.sentimentAnalyzer.analyze(textForMatch);
+        return {
+          title,
+          source: feed.name,
+          url,
+          sentiment: this.normalizeSentiment(sentiment.comparative),
+          summary: summary || this.cleanText(rawContent).slice(0, 280),
+          timestamp: this.extractItemDate(item),
+          content: summary,
+          author: item.find('author name').first().text().trim() || item.find('creator').first().text().trim(),
+          category: this.categorizeArticle(title, summary)
+        };
+      }).filter(Boolean);
+
+      return articles;
     } catch (error) {
-      console.error('Error in news scraping:', error);
+      console.error(`Failed to fetch RSS feed ${feed.url}:`, error.message);
+      return [];
+    }
+  }
+
+  async fetchFromRss(coin) {
+    const feedTasks = this.rssFeeds.map(feed => this.fetchRssFeed(feed, coin));
+    const results = await Promise.allSettled(feedTasks);
+    const articles = [];
+
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        articles.push(...result.value);
+      }
+    });
+
+    return articles;
+  }
+
+  async fetchNews(coin, limit = this.maxArticles) {
+    const coinQueries = [coin, `${coin} price`, `${coin} market`, `${coin} ETF`, `${coin} upgrade`];
+
+    let apiArticles = [];
+    if (this.newsApiKey) {
+      for (const query of coinQueries) {
+        const articles = await this.fetchNewsAPI(coin, query);
+        apiArticles = apiArticles.concat(articles);
+      }
+    }
+
+    const rssArticles = await this.fetchFromRss(coin);
+    const combined = [...rssArticles, ...apiArticles];
+
+    const seen = new Set();
+    const uniqueArticles = [];
+    for (const article of combined) {
+      const key = article.url || article.title;
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniqueArticles.push(article);
+    }
+
+    uniqueArticles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const trimmed = uniqueArticles.slice(0, limit);
+    const sentimentScore = trimmed.length
+      ? trimmed.reduce((sum, article) => sum + (article.sentiment || 0.5), 0) / trimmed.length
+      : 0.5;
+
+    const sourceCount = new Set(trimmed.map(article => article.source)).size;
+
+    return {
+      articles: trimmed,
+      lastUpdated: new Date().toISOString(),
+      sourceCount,
+      sentimentScore
+    };
+  }
+
+  async scrapeNews(coin, limit = this.maxArticles) {
+    return this.fetchNews(coin, limit);
+  }
+
+  async saveNewsData(coin, newsData) {
+    const dataPath = path.join(process.cwd(), 'data', `${coin}_news.json`);
+    await fs.writeFile(dataPath, JSON.stringify(newsData, null, 2));
+    console.log(`Saved ${newsData.articles.length} articles for ${coin}`);
+  }
+
+  async saveNewsDataV2(coin, newsData) {
+    const dataPath = path.join(process.cwd(), 'data', `${coin}_news_v2.json`);
+    await fs.writeFile(dataPath, JSON.stringify(newsData, null, 2));
+    console.log(`Saved ${newsData.articles.length} articles for ${coin} (v2)`);
+  }
+
+  async run(coins = ['bitcoin', 'ethereum']) {
+    for (const coin of coins) {
+      const newsData = await this.fetchNews(coin, this.maxArticles);
+      await this.saveNewsData(coin, newsData);
+      await this.saveNewsDataV2(coin, newsData);
     }
   }
 }
 
 module.exports = NewsScraper;
 
-// 直接运行时执行
 if (require.main === module) {
   const scraper = new NewsScraper();
-  scraper.run();
+  scraper.run().catch(error => {
+    console.error('News scraping failed:', error);
+    process.exit(1);
+  });
 }
