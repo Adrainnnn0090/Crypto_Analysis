@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 export default function Home() {
   const [newsData, setNewsData] = useState({ bitcoin: [], ethereum: [] });
   const [technicalAnalysis, setTechnicalAnalysis] = useState({ bitcoin: null, ethereum: null });
+  const [priceData, setPriceData] = useState({ bitcoin: null, ethereum: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -52,6 +53,31 @@ export default function Home() {
     fetchData();
     // Refresh every 10 minutes for fresh data
     const interval = setInterval(fetchData, 600000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const [btcRes, ethRes] = await Promise.all([
+          fetch('/api/price/bitcoin'),
+          fetch('/api/price/ethereum')
+        ]);
+
+        const btcData = await btcRes.json();
+        const ethData = await ethRes.json();
+
+        setPriceData({
+          bitcoin: btcData.data || null,
+          ethereum: ethData.data || null
+        });
+      } catch (err) {
+        console.error('Error fetching price data:', err);
+      }
+    };
+
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -148,7 +174,7 @@ export default function Home() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-gray-700 p-3 rounded text-center">
                   <p className="text-xs text-gray-400">Current Price</p>
-                  <p className="text-lg font-bold">${technicalAnalysis.bitcoin.cryptoPrice?.current_price?.toLocaleString() || 'N/A'}</p>
+                  <p className="text-lg font-bold">${(priceData.bitcoin?.current_price ?? technicalAnalysis.bitcoin.cryptoPrice?.current_price)?.toLocaleString() || 'N/A'}</p>
                 </div>
                 <div className="bg-gray-700 p-3 rounded text-center">
                   <p className="text-xs text-gray-400">RSI</p>
@@ -158,8 +184,8 @@ export default function Home() {
                 </div>
                 <div className="bg-gray-700 p-3 rounded text-center">
                   <p className="text-xs text-gray-400">24h Change</p>
-                  <p className={`text-lg font-bold ${technicalAnalysis.bitcoin.cryptoPrice?.price_change_percentage_24h > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {technicalAnalysis.bitcoin.cryptoPrice?.price_change_percentage_24h?.toFixed(2) || 'N/A'}%
+                  <p className={`text-lg font-bold ${(priceData.bitcoin?.price_change_percentage_24h ?? technicalAnalysis.bitcoin.cryptoPrice?.price_change_percentage_24h) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {(priceData.bitcoin?.price_change_percentage_24h ?? technicalAnalysis.bitcoin.cryptoPrice?.price_change_percentage_24h)?.toFixed(2) || 'N/A'}%
                   </p>
                 </div>
                 <div className="bg-gray-700 p-3 rounded text-center">
@@ -264,7 +290,7 @@ export default function Home() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-gray-700 p-3 rounded text-center">
                   <p className="text-xs text-gray-400">Current Price</p>
-                  <p className="text-lg font-bold">${technicalAnalysis.ethereum.cryptoPrice?.current_price?.toLocaleString() || 'N/A'}</p>
+                  <p className="text-lg font-bold">${(priceData.ethereum?.current_price ?? technicalAnalysis.ethereum.cryptoPrice?.current_price)?.toLocaleString() || 'N/A'}</p>
                 </div>
                 <div className="bg-gray-700 p-3 rounded text-center">
                   <p className="text-xs text-gray-400">RSI</p>
@@ -274,8 +300,8 @@ export default function Home() {
                 </div>
                 <div className="bg-gray-700 p-3 rounded text-center">
                   <p className="text-xs text-gray-400">24h Change</p>
-                  <p className={`text-lg font-bold ${technicalAnalysis.ethereum.cryptoPrice?.price_change_percentage_24h > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {technicalAnalysis.ethereum.cryptoPrice?.price_change_percentage_24h?.toFixed(2) || 'N/A'}%
+                  <p className={`text-lg font-bold ${(priceData.ethereum?.price_change_percentage_24h ?? technicalAnalysis.ethereum.cryptoPrice?.price_change_percentage_24h) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {(priceData.ethereum?.price_change_percentage_24h ?? technicalAnalysis.ethereum.cryptoPrice?.price_change_percentage_24h)?.toFixed(2) || 'N/A'}%
                   </p>
                 </div>
                 <div className="bg-gray-700 p-3 rounded text-center">

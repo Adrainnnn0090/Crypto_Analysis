@@ -76,6 +76,40 @@ app.get('/api/technical/:coin', (req, res) => {
   }
 });
 
+// API routes for price
+app.get('/api/price/:coin', (req, res) => {
+  const { coin } = req.params;
+  
+  if (!['bitcoin', 'ethereum'].includes(coin)) {
+    return res.status(400).json({ error: 'Invalid coin' });
+  }
+
+  try {
+    const dataPath = path.join(__dirname, 'data', `${coin}_price.json`);
+    
+    if (!fs.existsSync(dataPath)) {
+      return res.json({ 
+        data: null,
+        message: 'No price data available yet'
+      });
+    }
+
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    
+    res.json({
+      success: true,
+      data: data,
+      lastUpdated: data.last_updated || new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching price:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch price data',
+      data: null
+    });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

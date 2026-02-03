@@ -75,6 +75,30 @@ app.get('/api/technical/:coin', async (req, res) => {
   }
 });
 
+// Price endpoint
+app.get('/api/price/:coin', async (req, res) => {
+  const { coin } = req.params;
+  if (!['bitcoin', 'ethereum'].includes(coin)) {
+    return res.status(400).json({ error: 'Invalid coin. Use "bitcoin" or "ethereum"' });
+  }
+
+  try {
+    const dataPath = path.join(__dirname, 'data', `${coin}_price.json`);
+    if (!fs.existsSync(dataPath)) {
+      return res.status(404).json({ data: null, message: 'No price data available yet' });
+    }
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    res.json({
+      success: true,
+      data,
+      lastUpdated: data.last_updated || new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Price endpoint error:', error);
+    res.status(500).json({ error: 'Failed to fetch price data' });
+  }
+});
+
 // Fallback to Next.js app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '.next', 'index.html'));

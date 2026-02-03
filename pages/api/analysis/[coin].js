@@ -21,6 +21,11 @@ export default function handler(req, res) {
     }
 
     const analysisData = JSON.parse(fs.readFileSync(analysisPath, 'utf8'));
+    const pricePath = path.join(process.cwd(), 'data', `${coin}_price.json`);
+    if (fs.existsSync(pricePath)) {
+      const priceData = JSON.parse(fs.readFileSync(pricePath, 'utf8'));
+      analysisData.cryptoPrice = priceData;
+    }
     
     res.status(200).json({
       success: true,

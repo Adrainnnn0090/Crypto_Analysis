@@ -89,6 +89,12 @@ npm run scrape
 npm run scrape:realtime
 ```
 
+价格更新（默认每 30 秒）：
+
+```bash
+npm run price:realtime
+```
+
 ### 常用环境变量
 
 - `NEWS_API_KEY`：NewsAPI Key（可选）
@@ -98,5 +104,7 @@ npm run scrape:realtime
 - `SCRAPE_CRON`：定时任务 cron 表达式（默认 `*/10 * * * *`）
 - `SCRAPE_COINS`：抓取币种（默认 `bitcoin,ethereum`）
 - `CRYPTOCOMPARE_API_KEY`：CryptoCompare Key（可选）
+- `PRICE_INTERVAL_MS`：价格更新间隔（默认 30000）
+- `PRICE_COINS`：价格更新币种（默认 `bitcoin,ethereum`）
 - `SOCIAL_SIMULATED`：是否启用社媒模拟数据（默认 `false`）
 - `ALLOW_SAMPLE_DATA`：无数据时是否允许样本填充（默认 `false`）

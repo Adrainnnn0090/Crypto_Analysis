@@ -6,6 +6,7 @@ echo "🚀 Starting Crypto Analysis Dashboard..."
 echo "🧹 Cleaning up existing processes..."
 pkill -f "node.*simple-server.js" 2>/dev/null
 pkill -f "node.*realtime_runner.js" 2>/dev/null
+pkill -f "node.*price_runner.js" 2>/dev/null
 
 # Create data directory if it doesn't exist
 mkdir -p data
@@ -34,6 +35,10 @@ node simple-server.js &
 # Start realtime scraper (runs in background)
 echo "📰 Starting realtime news scraper..."
 node scrapers/realtime_runner.js &
+
+# Start price updater (runs in background)
+echo "💰 Starting price updater (30s interval)..."
+node scrapers/price_runner.js &
 
 # Wait a moment and check if it's running
 sleep 2
