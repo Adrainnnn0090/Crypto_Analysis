@@ -1,43 +1,50 @@
 {
-  "timestamp": "2026-02-02T09:51:05.297Z",
+  "timestamp": "2026-02-03T07:48:23.656Z",
   "crypto": "bitcoin",
-  "summary": "Bitcoin shows balanced technical setup with moderate volatility. Price action near key moving averages suggests potential consolidation before next major move. News sentiment remains cautiously optimistic with 50 recent articles analyzed.",
+  "cryptoPrice": {
+    "current_price": 45740.39207176395,
+    "price_change_percentage_24h": -9.740971719931048,
+    "total_volume": 11549767.14866808,
+    "last_updated": "2026-02-03T07:48:23.656Z"
+  },
+  "summary": "Bitcoin technical analysis combines price action, volume, and market sentiment from multiple sources. Current spot price is around $45,740.392. The asset is showing strong bearish momentum with a -9.74% 24h change. News sentiment is balanced across 50 recent headlines. RSI remains neutral, implying neither extreme overbought nor oversold conditions. Short-term momentum (MA20 vs MA50) leans bearish, while longer-term MA200 sits around $41166. Key support zones cluster near $43453, with resistance around $48027.",
   "keyLevels": {
     "support": [
-      41970.69930805288,
-      39761.71513394483,
-      37552.73095983679
+      43453.37246817575,
+      41166.352864587556,
+      38879.33326099935
     ],
     "resistance": [
-      46388.66765626897,
-      48597.65183037702,
-      50806.63600448506
+      48027.411675352145,
+      50314.43127894035,
+      52601.45088252854
     ]
   },
   "indicators": {
-    "rsi": 42.49120399957803,
+    "rsi": 45.82,
     "macd": {
-      "line": -0.7281141259892885,
-      "signal": 0.48298711682915646,
-      "histogram": -0.21648771279813123
+      "MACD": -1289.2613510170268,
+      "signal": -1579.6086975699359,
+      "histogram": 290.34734655290913
     },
     "movingAverages": {
-      "ma20": 43298.91711212313,
-      "ma50": 43071.29982453179,
-      "ma200": 41051.79275009393
+      "ma20": 45349.89753927983,
+      "ma50": 49685.510773997994,
+      "ma200": 41166.352864587556
     },
-    "volume": 2379253111.3445125
+    "volume": 11549767.14866808
   },
   "sentiment": {
     "overall": 0.4758050655364746,
     "newsSentiment": 0.4758050655364746,
-    "socialSentiment": 0.5747614416574234
+    "socialSentiment": 0
   },
   "recommendations": [
-    "Monitor price action around key support/resistance levels",
-    "Maintain current position size",
-    "Watch for breakout above resistance or breakdown below support",
-    "Diversify across timeframes for better risk management"
+    "Short-term trend shows weakness (MA20 below MA50)",
+    "Key support levels to watch: $43453, $41166, $38879",
+    "Key resistance levels: $48027, $50314, $52601",
+    "Always implement proper risk management and position sizing",
+    "Consider dollar-cost averaging for long-term positions"
   ],
-  "riskAssessment": "Medium risk level. Balanced market conditions with normal volatility."
+  "riskAssessment": "Low to Medium risk level. Factors: Balanced market conditions."
 }

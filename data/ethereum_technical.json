@@ -1,22 +1,50 @@
 {
-  "indicators": {
-    "rsi": 58.2,
-    "macd": {
-      "line": 125.4,
-      "signal": 118.7,
-      "histogram": 6.7
-    },
-    "sma": {
-      "20": 2850.25,
-      "50": 2780.15,
-      "200": 2650.80
-    },
-    "ema": {
-      "12": 2875.30,
-      "26": 2825.45
-    },
-    "price": 2890.50,
-    "volume": 15240000
+  "timestamp": "2026-02-03T07:48:23.676Z",
+  "crypto": "ethereum",
+  "cryptoPrice": {
+    "current_price": 2624.5327725387747,
+    "price_change_percentage_24h": 16.877479411548208,
+    "total_volume": 9396132.337265441,
+    "last_updated": "2026-02-03T07:48:23.676Z"
   },
-  "lastUpdated": "2026-02-02T08:54:00Z"
+  "summary": "Ethereum technical analysis combines price action, volume, and market sentiment from multiple sources. Current spot price is around $2,624.533. The asset is showing strong bullish momentum with a 16.88% 24h change. News sentiment is balanced across 50 recent headlines. RSI remains neutral, implying neither extreme overbought nor oversold conditions. Short-term momentum (MA20 vs MA50) leans bullish, while longer-term MA200 sits around $2362. Key support zones cluster near $2493, with resistance around $2756.",
+  "keyLevels": {
+    "support": [
+      2493.306133911836,
+      2362.0794952848973,
+      2230.8528566579585
+    ],
+    "resistance": [
+      2755.7594111657136,
+      2886.9860497926525,
+      3018.2126884195904
+    ]
+  },
+  "indicators": {
+    "rsi": 61.03,
+    "macd": {
+      "MACD": 70.5185972542431,
+      "signal": 77.91478952265331,
+      "histogram": -7.3961922684102035
+    },
+    "movingAverages": {
+      "ma20": 2496.315087185959,
+      "ma50": 2279.881273016609,
+      "ma200": 2362.0794952848973
+    },
+    "volume": 9396132.337265441
+  },
+  "sentiment": {
+    "overall": 0.5494747447949337,
+    "newsSentiment": 0.5494747447949337,
+    "socialSentiment": 0
+  },
+  "recommendations": [
+    "Short-term trend is bullish (MA20 above MA50)",
+    "Key support levels to watch: $2493, $2362, $2231",
+    "Key resistance levels: $2756, $2887, $3018",
+    "Always implement proper risk management and position sizing",
+    "Consider dollar-cost averaging for long-term positions"
+  ],
+  "riskAssessment": "Low to Medium risk level. Factors: Balanced market conditions."
 }
